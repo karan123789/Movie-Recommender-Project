@@ -15,19 +15,24 @@ def fetch_poster(movie_id):
 
 def recommend(movie):
     try:
-        # Get the genre of the selected movie
-        selected_movie_genre = movies[movies['title'] == movie]['genres'].values[0]
+        # Check if 'genres' column exists in movies DataFrame
+        if 'genres' in movies.columns:
+            # Get the genre of the selected movie
+            selected_movie_genre = movies[movies['title'] == movie]['genres'].values[0]
 
-        # Filter movies by genre (content-based filtering)
-        similar_movies = movies[movies['genres'].apply(lambda x: selected_movie_genre in x)]
+            # Filter movies by genre (content-based filtering)
+            similar_movies = movies[movies['genres'].apply(lambda x: selected_movie_genre in x)]
 
-        if len(similar_movies) > 5:
-            # Get top 5 similar movies
-            recommended_movie_names = similar_movies['title'].values[:5]
-            recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[:5]]
+            if len(similar_movies) > 5:
+                # Get top 5 similar movies
+                recommended_movie_names = similar_movies['title'].values[:5]
+                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[:5]]
+            else:
+                recommended_movie_names = similar_movies['title'].values
+                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values]
+
         else:
-            recommended_movie_names = similar_movies['title'].values
-            recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values]
+            raise ValueError("The 'genres' column is missing in the movie data.")
 
     except Exception as e:
         st.error("Error occurred while recommending movies.")
