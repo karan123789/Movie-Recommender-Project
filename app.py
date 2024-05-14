@@ -10,16 +10,20 @@ def recommend(movie_title):
         # Get the row corresponding to the selected movie
         selected_movie = movies[movies['original_title'] == movie_title]
 
-        # Get the genre, keywords, and ID of the selected movie
-        selected_genre = selected_movie['genres'].iloc[0]
+        # Get the keywords, genre, ID, budget, and popularity of the selected movie
         selected_keywords = selected_movie['keywords'].iloc[0]
+        selected_genre = selected_movie['genres'].iloc[0]
         selected_id = selected_movie['id'].iloc[0]
+        selected_budget = selected_movie['budget'].iloc[0]
+        selected_popularity = selected_movie['popularity'].iloc[0]
 
-        # Filter movies by genre, keywords, and ID
+        # Filter movies by keywords, genre, ID, budget, and popularity
         similar_movies = movies[
-            (movies['genres'].str.contains(selected_genre)) &
             (movies['keywords'].str.contains(selected_keywords)) &
-            (movies['id'] != selected_id)
+            (movies['genres'].str.contains(selected_genre)) &
+            (movies['id'] != selected_id) &
+            (movies['budget'] <= selected_budget * 1.5) &  # Allowing for 50% difference in budget
+            (movies['popularity'] >= selected_popularity * 0.8)  # Only recommend popular movies (80% of selected movie's popularity)
         ]
 
         # Get top 5 similar movies by popularity
