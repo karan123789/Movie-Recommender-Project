@@ -47,7 +47,7 @@ recommended_movies = get_recommendations(selected_movie, cosine_sim, movies)
 
 # Display the selected movie and recommendations
 st.write(f'### Selected Movie: {selected_movie}')
-st.dataframe(movies[movies['original_title'] == selected_movie])
+st.dataframe(movies[movies['original_title'] == selected_movie][['original_title', 'poster_path']])
 
 st.write('### Recommended Movies:')
-st.dataframe(recommended_movies)
+st.dataframe(recommended_movies[['original_title', 'poster_path']])
