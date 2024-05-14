@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 # Load movie list (assuming this file still exists)
 movies = pd.read_csv('tmdb_5000_movies.csv')
-movies = movies[['movie_id', 'title', 'overview', 'genres', 'keywords', 'cast', 'crew']]
+movies = movies[['id', 'original_title', 'overview', 'genres', 'keywords', 'cast', 'crew']]
 
 def convert(text):
     L = []
@@ -61,15 +61,15 @@ def fetch_poster(movie_id):
 
 def recommend(movie):
     try:
-        index = new[new['title'] == movie].index[0]
+        index = new[new['original_title'] == movie].index[0]
         distances = sorted(list(enumerate(similarity[index])), reverse=True, key=lambda x: x[1])
 
         recommended_movies = []
         recommended_posters = []
 
         for i in distances[1:6]:
-            recommended_movies.append(new.iloc[i[0]].title)
-            recommended_posters.append(fetch_poster(new.iloc[i[0]].movie_id))
+            recommended_movies.append(new.iloc[i[0]].original_title)
+            recommended_posters.append(fetch_poster(new.iloc[i[0]].id))
 
     except Exception as e:
         st.error("Error occurred while recommending movies.")
@@ -81,7 +81,7 @@ def recommend(movie):
 
 st.header('Movie Recommender System')
 
-movie_list = new['title'].values
+movie_list = new['original_title'].values
 
 selected_movie = st.selectbox(
     "Type or select a movie from the dropdown",
