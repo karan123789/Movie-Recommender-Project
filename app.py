@@ -6,14 +6,23 @@ def fetch_poster(movie_id):
     url = "https://api.themoviedb.org/3/movie/{}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US".format(movie_id)
     data = requests.get(url)
     data = data.json()
-    poster_path = data['poster_path']
-    full_path = "https://image.tmdb.org/t/p/w500/" + poster_path
+    if 'poster_path' in data:
+        poster_path = data['poster_path']
+        full_path = "https://image.tmdb.org/t/p/w500/" + poster_path
+    else:
+        full_path = "https://via.placeholder.com/500x750.png?text=Poster+Not+Available"
     return full_path
 
 def recommend(movie):
-    # Dummy recommendation since similarity matrix is not available
-    recommended_movie_names = [f"Recommended Movie {i}" for i in range(1, 6)]
-    recommended_movie_posters = [fetch_poster(movie_id) for movie_id in range(1, 6)]
+    # Get the genre of the selected movie
+    selected_movie_genre = movies[movies['title'] == movie]['genres'].values[0]
+
+    # Filter movies by genre (content-based filtering)
+    similar_movies = movies[movies['genres'].apply(lambda x: selected_movie_genre in x)]
+
+    # Get top 5 similar movies
+    recommended_movie_names = similar_movies['title'].values[:5]
+    recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[:5]]
     return recommended_movie_names, recommended_movie_posters
 
 st.header('Movie Recommender System')
