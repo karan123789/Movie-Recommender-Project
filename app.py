@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 # Load movie list (assuming this file still exists)
 movies = pd.read_csv('tmdb_5000_movies.csv')
-movies = movies[['id', 'original_title', 'overview', 'genres', 'keywords', 'cast', 'crew']]
+movies = movies[['id', 'original_title', 'overview', 'genres', 'keywords', 'cast']]
 
 def convert(text):
     L = []
@@ -41,14 +41,12 @@ movies['genres'] = movies['genres'].apply(convert)
 movies['keywords'] = movies['keywords'].apply(convert)
 movies['cast'] = movies['cast'].apply(convert3)
 movies['cast'] = movies['cast'].apply(lambda x: x[0:3])
-movies['crew'] = movies['crew'].apply(fetch_director)
 movies['cast'] = movies['cast'].apply(collapse)
-movies['crew'] = movies['crew'].apply(collapse)
 movies['genres'] = movies['genres'].apply(collapse)
 movies['keywords'] = movies['keywords'].apply(collapse)
 movies['overview'] = movies['overview'].apply(lambda x: x.split())
-movies['tags'] = movies['overview'] + movies['genres'] + movies['keywords'] + movies['cast'] + movies['crew']
-new = movies.drop(columns=['overview', 'genres', 'keywords', 'cast', 'crew'])
+movies['tags'] = movies['overview'] + movies['genres'] + movies['keywords'] + movies['cast']
+new = movies.drop(columns=['overview', 'genres', 'keywords', 'cast'])
 new['tags'] = new['tags'].apply(lambda x: " ".join(x))
 
 # Calculate cosine similarity
