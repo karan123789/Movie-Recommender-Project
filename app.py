@@ -3,6 +3,8 @@ import streamlit as st
 import requests
 import random
 import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import linear_kernel
 
 def fetch_poster(movie_id):
     url = "https://api.themoviedb.org/3/movie/{}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US".format(movie_id)
@@ -15,38 +17,39 @@ def fetch_poster(movie_id):
         full_path = "https://via.placeholder.com/500x750.png?text=Poster+Not+Available"
     return full_path
 
-def calculate_similarity(selected_genre, movie_genre):
-    # Calculate Jaccard similarity between two genre lists
-    selected_set = set(selected_genre)
-    movie_set = set(movie_genre)
-    intersection = len(selected_set.intersection(movie_set))
-    union = len(selected_set.union(movie_set))
-    similarity = intersection / union if union > 0 else 0
-    return similarity
-
 def recommend(movie):
     try:
-        # Check if 'genres' column exists in movies DataFrame
-        if 'genres' in movies.columns:
-            # Get the genre of the selected movie
+        # Check if necessary columns exist in movies DataFrame
+        if 'genres' in movies.columns and 'keywords' in movies.columns and 'tags' in movies.columns:
+            # Get genre, keywords, and tags of the selected movie
             selected_movie_genre = movies[movies['title'] == movie]['genres'].values[0]
+            selected_movie_keywords = movies[movies['title'] == movie]['keywords'].values[0]
+            selected_movie_tags = movies[movies['title'] == movie]['tags'].values[0]
 
-            # Calculate similarity scores for all movies based on genre
-            movies['similarity'] = movies['genres'].apply(lambda x: calculate_similarity(selected_movie_genre, x))
+            # Create a TF-IDF vectorizer for genres, keywords, and tags
+            tfidf_vectorizer = TfidfVectorizer()
+            tfidf_matrix = tfidf_vectorizer.fit_transform(
+                movies['genres'] + ' ' + movies['keywords'] + ' ' + movies['tags']
+            )
 
-            # Sort movies by similarity score in descending order
-            similar_movies = movies.sort_values(by='similarity', ascending=False)
+            # Compute cosine similarity between the selected movie and all other movies
+            selected_movie_index = movies[movies['title'] == movie].index[0]
+            cosine_similarities = linear_kernel(tfidf_matrix[selected_movie_index:selected_movie_index+1], tfidf_matrix).flatten()
+
+            # Sort movies by cosine similarity scores in descending order
+            similar_movies_indices = cosine_similarities.argsort()[::-1][1:]  # Exclude the selected movie
+            similar_movies = movies.iloc[similar_movies_indices]
 
             if len(similar_movies) > 5:
                 # Get top 5 similar movies
-                recommended_movie_names = similar_movies['title'].values[1:6]
-                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[1:6]]
+                recommended_movie_names = similar_movies['title'].values[:5]
+                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[:5]]
             else:
-                recommended_movie_names = similar_movies['title'].values[1:]
-                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[1:]]
+                recommended_movie_names = similar_movies['title'].values
+                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values]
 
         else:
-            # If 'genres' column is missing, recommend random movies
+            # If required columns are missing, recommend random movies
             random_movies = random.sample(list(movies['title']), 5)
             recommended_movie_names = random_movies
             recommended_movie_posters = [fetch_poster(random.choice(movies['movie_id'])) for _ in range(5)]
