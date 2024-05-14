@@ -1,72 +1,53 @@
-import pickle
 import streamlit as st
-import requests
-import random
-import numpy as np
 import pandas as pd
-import ast
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Load movie data
+# Load the movies data
 movies = pd.read_csv('tmdb_5000_movies.csv')
-credits = pd.read_csv('tmdb_5000_credits.csv')
 
-# Merge dataframes and preprocess data
-movies = movies.merge(credits, on='title')
-movies = movies[['movie_id','title','overview','genres','keywords','cast','crew']]
-movies.dropna(inplace=True)
-movies['genres'] = movies['genres'].apply(convert)
-movies['keywords'] = movies['keywords'].apply(convert)
-movies['cast'] = movies['cast'].apply(convert)
-movies['crew'] = movies['crew'].apply(fetch_director)
-movies['cast'] = movies['cast'].apply(lambda x: x[0:3])
-movies['genres'] = movies['genres'].apply(collapse)
-movies['keywords'] = movies['keywords'].apply(collapse)
-movies['cast'] = movies['cast'].apply(collapse)
-movies['crew'] = movies['crew'].apply(collapse)
-movies['overview'] = movies['overview'].apply(lambda x: x.split())
-movies['tags'] = movies['overview'] + movies['genres'] + movies['keywords'] + movies['cast'] + movies['crew']
-new = movies.drop(columns=['overview','genres','keywords','cast','crew'])
-new['tags'] = new['tags'].apply(lambda x: " ".join(x))
+# Check for and handle missing values
+movies = movies.dropna(subset=['overview'])
+movies = movies.reset_index(drop=True)
 
-# Generate similarity matrix
-cv = CountVectorizer(max_features=5000, stop_words='english')
-vector = cv.fit_transform(new['tags']).toarray()
-similarity = cosine_similarity(vector)
+# Preprocess the overview text
+vectorizer = CountVectorizer(stop_words='english')
+overview_matrix = vectorizer.fit_transform(movies['overview'])
 
-# Save data to pickle files
-pickle.dump(new, open('movie_list.pkl', 'wb'))
-pickle.dump(similarity, open('similarity.pkl', 'wb'))
+# Compute the cosine similarity matrix
+cosine_sim = cosine_similarity(overview_matrix, overview_matrix)
 
-# Define remaining functions
-def fetch_poster(movie_id):
-    url = "https://api.themoviedb.org/3/movie/{}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US".format(movie_id)
-    data = requests.get(url)
-    data = data.json()
-    if 'poster_path' in data:
-        poster_path = data['poster_path']
-        full_path = "https://image.tmdb.org/t/p/w500/" + poster_path
-    else:
-        full_path = "https://via.placeholder.com/500x750.png?text=Poster+Not+Available"
-    return full_path
+# Function to get movie recommendations
+def get_recommendations(movie_title, cosine_sim_matrix, movies_data):
+    # Get the index of the movie title
+    idx = movies_data[movies_data['original_title'] == movie_title].index[0]
 
-def recommend(movie):
-    index = new[new['title'] == movie].index[0]
-    distances = sorted(list(enumerate(similarity[index])), reverse=True, key=lambda x: x[1])
-    recommended_movies = [new.iloc[i[0]] for i in distances[1:6]]
+    # Get the pairwise similarity scores
+    sim_scores = list(enumerate(cosine_sim_matrix[idx]))
+
+    # Sort the movies based on similarity scores
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+
+    # Get the top 10 similar movies (excluding the input movie itself)
+    sim_scores = sim_scores[1:11]
+    movie_indices = [i[0] for i in sim_scores]
+    recommended_movies = movies_data.iloc[movie_indices]
+
     return recommended_movies
 
 # Streamlit app
-st.header('Movie Recommender System')
+st.title('Movie Recommender System')
 
-# Dropdown to select a movie
-selected_movie = st.selectbox("Type or select a movie from the dropdown", new['title'].values)
+# Sidebar for user input
+st.sidebar.title('Select a Movie')
+selected_movie = st.sidebar.selectbox('Choose a movie:', movies['original_title'])
 
-if st.button('Show Recommendation'):
-    recommended_movies = recommend(selected_movie)
-    col1, col2, col3, col4, col5 = st.columns(5)
-    for recommended_movie in recommended_movies:
-        with st.container():
-            st.text(recommended_movie['title'])
-            st.image(fetch_poster(recommended_movie['movie_id']))
+# Get recommendations based on user input
+recommended_movies = get_recommendations(selected_movie, cosine_sim, movies)
+
+# Display the selected movie and recommendations
+st.write(f'### Selected Movie: {selected_movie}')
+st.dataframe(movies[movies['original_title'] == selected_movie])
+
+st.write('### Recommended Movies:')
+st.dataframe(recommended_movies)
