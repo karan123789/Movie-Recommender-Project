@@ -3,8 +3,8 @@ import streamlit as st
 import requests
 import random
 import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import linear_kernel
 
 def fetch_poster(movie_id):
     url = "https://api.themoviedb.org/3/movie/{}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US".format(movie_id)
@@ -26,15 +26,16 @@ def recommend(movie):
             selected_movie_keywords = movies[movies['title'] == movie]['keywords'].values[0]
             selected_movie_tags = movies[movies['title'] == movie]['tags'].values[0]
 
-            # Create a TF-IDF vectorizer for genres, keywords, and tags
-            tfidf_vectorizer = TfidfVectorizer()
-            tfidf_matrix = tfidf_vectorizer.fit_transform(
-                movies['genres'] + ' ' + movies['keywords'] + ' ' + movies['tags']
-            )
+            # Combine genres, keywords, and tags into a single text column
+            movies['combined_features'] = movies['genres'] + ' ' + movies['keywords'] + ' ' + movies['tags']
 
-            # Compute cosine similarity between the selected movie and all other movies
+            # Create TF-IDF vectors for combined features
+            tfidf_vectorizer = TfidfVectorizer()
+            tfidf_matrix = tfidf_vectorizer.fit_transform(movies['combined_features'])
+
+            # Compute cosine similarity between selected movie and all other movies
             selected_movie_index = movies[movies['title'] == movie].index[0]
-            cosine_similarities = linear_kernel(tfidf_matrix[selected_movie_index:selected_movie_index+1], tfidf_matrix).flatten()
+            cosine_similarities = cosine_similarity(tfidf_matrix[selected_movie_index:selected_movie_index+1], tfidf_matrix).flatten()
 
             # Sort movies by cosine similarity scores in descending order
             similar_movies_indices = cosine_similarities.argsort()[::-1][1:]  # Exclude the selected movie
