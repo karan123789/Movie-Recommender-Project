@@ -1,53 +1,66 @@
+import pickle
 import streamlit as st
-import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import requests
+import random
 
-# Load the movies data
-movies = pd.read_csv('tmdb_5000_movies.csv')
+def fetch_poster(movie_id):
+    url = "https://api.themoviedb.org/3/movie/{}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US".format(movie_id)
+    data = requests.get(url)
+    data = data.json()
+    if 'poster_path' in data:
+        poster_path = data['poster_path']
+        full_path = "https://image.tmdb.org/t/p/w500/" + poster_path
+    else:
+        full_path = "https://via.placeholder.com/500x750.png?text=Poster+Not+Available"
+    return full_path
 
-# Check for and handle missing values
-movies = movies.dropna(subset=['overview'])
-movies = movies.reset_index(drop=True)
+def recommend(movie):
+    try:
+        # Check if 'genres' column exists in movies DataFrame
+        if 'genres' in movies.columns:
+            # Get the genre of the selected movie
+            selected_movie_genre = movies[movies['title'] == movie]['genres'].values[0]
 
-# Preprocess the overview text
-vectorizer = CountVectorizer(stop_words='english')
-overview_matrix = vectorizer.fit_transform(movies['overview'])
+            # Filter movies by genre (content-based filtering)
+            similar_movies = movies[movies['genres'].apply(lambda x: selected_movie_genre in x)]
 
-# Compute the cosine similarity matrix
-cosine_sim = cosine_similarity(overview_matrix, overview_matrix)
+            if len(similar_movies) > 5:
+                # Get top 5 similar movies
+                recommended_movie_names = similar_movies['title'].values[:5]
+                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[:5]]
+            else:
+                recommended_movie_names = similar_movies['title'].values
+                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values]
 
-# Function to get movie recommendations
-def get_recommendations(movie_title, cosine_sim_matrix, movies_data):
-    # Get the index of the movie title
-    idx = movies_data[movies_data['original_title'] == movie_title].index[0]
+        else:
+            # If 'genres' column is missing, recommend random movies
+            random_movies = random.sample(list(movies['title']), 5)
+            recommended_movie_names = random_movies
+            recommended_movie_posters = [fetch_poster(random.choice(movies['movie_id'])) for _ in range(5)]
 
-    # Get the pairwise similarity scores
-    sim_scores = list(enumerate(cosine_sim_matrix[idx]))
+    except Exception as e:
+        st.error("Error occurred while recommending movies.")
+        st.error(str(e))
+        recommended_movie_names = []
+        recommended_movie_posters = []
 
-    # Sort the movies based on similarity scores
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    return recommended_movie_names, recommended_movie_posters
 
-    # Get the top 10 similar movies (excluding the input movie itself)
-    sim_scores = sim_scores[1:11]
-    movie_indices = [i[0] for i in sim_scores]
-    recommended_movies = movies_data.iloc[movie_indices]
+st.header('Movie Recommender System')
 
-    return recommended_movies
+# Load movie list (assuming this file still exists)
+movies = pickle.load(open('movie_list.pkl', 'rb'))
+movie_list = movies['title'].values
 
-# Streamlit app
-st.title('Movie Recommender System')
+selected_movie = st.selectbox(
+    "Type or select a movie from the dropdown",
+    movie_list
+)
 
-# Sidebar for user input
-st.sidebar.title('Select a Movie')
-selected_movie = st.sidebar.selectbox('Choose a movie:', movies['original_title'])
-
-# Get recommendations based on user input
-recommended_movies = get_recommendations(selected_movie, cosine_sim, movies)
-
-# Display the selected movie and recommendations
-st.write(f'### Selected Movie: {selected_movie}')
-st.dataframe(movies[movies['original_title'] == selected_movie][['original_title', 'poster_path']])
-
-st.write('### Recommended Movies:')
-st.dataframe(recommended_movies[['original_title', 'poster_path']])
+if st.button('Show Recommendation'):
+    recommended_movie_names, recommended_movie_posters = recommend(selected_movie)
+    col1, col2, col3, col4, col5 = st.columns(5)
+    for i in range(len(recommended_movie_names)):
+        with col1:
+            st.text(recommended_movie_names[i])
+            st.image(recommended_movie_posters[i])
