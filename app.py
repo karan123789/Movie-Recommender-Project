@@ -14,15 +14,27 @@ def fetch_poster(movie_id):
     return full_path
 
 def recommend(movie):
-    # Get the genre of the selected movie
-    selected_movie_genre = movies[movies['title'] == movie]['genres'].values[0]
+    try:
+        # Get the genre of the selected movie
+        selected_movie_genre = movies[movies['title'] == movie]['genres'].values[0]
 
-    # Filter movies by genre (content-based filtering)
-    similar_movies = movies[movies['genres'].apply(lambda x: selected_movie_genre in x)]
+        # Filter movies by genre (content-based filtering)
+        similar_movies = movies[movies['genres'].apply(lambda x: selected_movie_genre in x)]
 
-    # Get top 5 similar movies
-    recommended_movie_names = similar_movies['title'].values[:5]
-    recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[:5]]
+        if len(similar_movies) > 5:
+            # Get top 5 similar movies
+            recommended_movie_names = similar_movies['title'].values[:5]
+            recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[:5]]
+        else:
+            recommended_movie_names = similar_movies['title'].values
+            recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values]
+
+    except Exception as e:
+        st.error("Error occurred while recommending movies.")
+        st.error(str(e))
+        recommended_movie_names = []
+        recommended_movie_posters = []
+
     return recommended_movie_names, recommended_movie_posters
 
 st.header('Movie Recommender System')
@@ -39,18 +51,7 @@ selected_movie = st.selectbox(
 if st.button('Show Recommendation'):
     recommended_movie_names, recommended_movie_posters = recommend(selected_movie)
     col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        st.text(recommended_movie_names[0])
-        st.image(recommended_movie_posters[0])
-    with col2:
-        st.text(recommended_movie_names[1])
-        st.image(recommended_movie_posters[1])
-    with col3:
-        st.text(recommended_movie_names[2])
-        st.image(recommended_movie_posters[2])
-    with col4:
-        st.text(recommended_movie_names[3])
-        st.image(recommended_movie_posters[3])
-    with col5:
-        st.text(recommended_movie_names[4])
-        st.image(recommended_movie_posters[4])
+    for i in range(len(recommended_movie_names)):
+        with st.container():
+            st.text(recommended_movie_names[i])
+            st.image(recommended_movie_posters[i])
