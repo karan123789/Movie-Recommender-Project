@@ -1,6 +1,7 @@
 import pickle
 import streamlit as st
 import requests
+import random
 
 def fetch_poster(movie_id):
     url = "https://api.themoviedb.org/3/movie/{}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US".format(movie_id)
@@ -32,7 +33,10 @@ def recommend(movie):
                 recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values]
 
         else:
-            raise ValueError("The 'genres' column is missing in the movie data.")
+            # If 'genres' column is missing, recommend random movies
+            random_movies = random.sample(list(movies['title']), 5)
+            recommended_movie_names = random_movies
+            recommended_movie_posters = [fetch_poster(random.choice(movies['movie_id'])) for _ in range(5)]
 
     except Exception as e:
         st.error("Error occurred while recommending movies.")
