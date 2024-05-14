@@ -16,13 +16,24 @@ def fetch_poster(movie_id):
 
 def recommend(movie):
     try:
-        # Check if 'genres' column exists in movies DataFrame
-        if 'genres' in movies.columns:
-            # Get the genre of the selected movie
-            selected_movie_genre = movies[movies['title'] == movie]['genres'].values[0]
+        # Check if 'genres' and 'tags' columns exist in movies DataFrame
+        if 'genres' in movies.columns and 'tags' in movies.columns and 'id' in movies.columns and 'keywords' in movies.columns:
+            # Get the details of the selected movie
+            selected_movie_data = movies[movies['title'] == movie].iloc[0]
 
-            # Filter movies by genre (content-based filtering)
-            similar_movies = movies[movies['genres'].apply(lambda x: selected_movie_genre in x)]
+            # Extract relevant features
+            selected_movie_genres = selected_movie_data['genres']
+            selected_movie_tags = selected_movie_data['tags']
+            selected_movie_id = selected_movie_data['id']
+            selected_movie_keywords = selected_movie_data['keywords']
+
+            # Filter movies by similar genres, tags, ID, and keywords (content-based filtering)
+            similar_movies = movies[
+                (movies['genres'].apply(lambda x: any(genre in x for genre in selected_movie_genres))) &
+                (movies['tags'].apply(lambda x: any(tag in x for tag in selected_movie_tags))) &
+                (movies['id'] == selected_movie_id) &
+                (movies['keywords'].apply(lambda x: any(keyword in x for keyword in selected_movie_keywords)))
+            ]
 
             if len(similar_movies) > 5:
                 # Get top 5 similar movies
@@ -33,7 +44,7 @@ def recommend(movie):
                 recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values]
 
         else:
-            # If 'genres' column is missing, recommend random movies
+            # If necessary columns are missing, recommend random movies
             random_movies = random.sample(list(movies['title']), 5)
             recommended_movie_names = random_movies
             recommended_movie_posters = [fetch_poster(random.choice(movies['movie_id'])) for _ in range(5)]
