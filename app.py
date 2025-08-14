@@ -21,16 +21,11 @@ def recommend(movie):
     try:
         # Check if necessary columns exist in movies DataFrame
         if 'genres' in movies.columns and 'keywords' in movies.columns and 'tags' in movies.columns:
-            # Get genre, keywords, and tags of the selected movie
-            selected_movie_genre = movies[movies['title'] == movie]['genres'].values[0]
-            selected_movie_keywords = movies[movies['title'] == movie]['keywords'].values[0]
-            selected_movie_tags = movies[movies['title'] == movie]['tags'].values[0]
 
 
             movies['combined_features'] = (movies['genres'].fillna('') + ' ' + 
-                                          movies['genres'].fillna('') + ' ' + 
-                                          movies['keywords'].fillna('') + ' ' + 
-                                          movies['tags'].fillna(''))
+                              movies['keywords'].fillna('') + ' ' + 
+                              movies['tags'].fillna(''))
 
             # Create TF-IDF vectors for combined features
             tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_features=5000, ngram_range=(1, 2))
@@ -80,8 +75,10 @@ selected_movie = st.selectbox(
 if st.button('Show Recommendation'):
     recommended_movie_names, recommended_movie_posters = recommend(selected_movie)
     col1, col2, col3, col4, col5 = st.columns(5)
+    columns = [col1, col2, col3, col4, col5]
     for i in range(len(recommended_movie_names)):
-        with st.container():
+        with columns[i % 5]:
             st.text(recommended_movie_names[i])
             st.image(recommended_movie_posters[i])
+
 
