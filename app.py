@@ -31,7 +31,7 @@ def recommend(movie):
 
 st.header('Movie Recommender System')
 
-# Load movie list (assuming this file still exists)
+# Load files using gzip and pickle
 movies = pickle.load(open('movie_list.pkl', 'rb'))
 with gzip.open('similarity.pkl.gz', 'rb') as f:
     similarity = pickle.load(f)
@@ -61,4 +61,5 @@ if st.button('Show Recommendation'):
         with col5:
             st.text(recommended_movie_names[4])
             st.image(recommended_movie_posters[4])
+
 
