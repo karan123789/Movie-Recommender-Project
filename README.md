@@ -7,7 +7,3 @@ This movie recommender project harnesses the power of machine learning through l
 
 
 Link: https://movie-recommender-project.streamlit.app/
-
-
-
-NOTE: The website as well as the code is currently being tinkered around therefore recommendations may not be entirely accurate in order to improve accuracy in the future.
