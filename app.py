@@ -26,19 +26,22 @@ def recommend(movie):
             selected_movie_keywords = movies[movies['title'] == movie]['keywords'].values[0]
             selected_movie_tags = movies[movies['title'] == movie]['tags'].values[0]
 
-            # Combine genres, keywords, and tags into a single text column
-            movies['combined_features'] = movies['genres'] + ' ' + movies['keywords'] + ' ' + movies['tags']
+
+            movies['combined_features'] = (movies['genres'].fillna('') + ' ' + 
+                                          movies['genres'].fillna('') + ' ' + 
+                                          movies['keywords'].fillna('') + ' ' + 
+                                          movies['tags'].fillna(''))
 
             # Create TF-IDF vectors for combined features
-            tfidf_vectorizer = TfidfVectorizer()
+            tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_features=5000, ngram_range=(1, 2))
             tfidf_matrix = tfidf_vectorizer.fit_transform(movies['combined_features'])
 
             # Compute cosine similarity between selected movie and all other movies
             selected_movie_index = movies[movies['title'] == movie].index[0]
             cosine_similarities = cosine_similarity(tfidf_matrix[selected_movie_index:selected_movie_index+1], tfidf_matrix).flatten()
 
-            # Sort movies by cosine similarity scores in descending order
-            similar_movies_indices = cosine_similarities.argsort()[::-1][1:]  # Exclude the selected movie
+            
+            similar_movies_indices = cosine_similarities.argsort()[::-1][1:21] 
             similar_movies = movies.iloc[similar_movies_indices]
 
             if len(similar_movies) > 5:
@@ -81,3 +84,4 @@ if st.button('Show Recommendation'):
         with st.container():
             st.text(recommended_movie_names[i])
             st.image(recommended_movie_posters[i])
+
