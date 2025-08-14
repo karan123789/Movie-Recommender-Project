@@ -21,33 +21,33 @@ def recommend(movie):
     try:
         # Check if necessary columns exist in movies DataFrame
         if 'genres' in movies.columns and 'keywords' in movies.columns and 'tags' in movies.columns:
+            # Get genre, keywords, and tags of the selected movie
+            selected_movie_genre = movies[movies['title'] == movie]['genres'].values[0]
+            selected_movie_keywords = movies[movies['title'] == movie]['keywords'].values[0]
+            selected_movie_tags = movies[movies['title'] == movie]['tags'].values[0]
 
-
-            movies['combined_features'] = (
-                movies['genres'].fillna('') + ' ' + 
-                movies['genres'].fillna('') + ' ' +  
-                movies['keywords'].fillna('') + ' ' + 
-                movies['tags'].fillna('')
-            )
+            # Combine genres, keywords, and tags into a single text column
+            movies['combined_features'] = movies['genres'] + ' ' + movies['keywords'] + ' ' + movies['tags']
 
             # Create TF-IDF vectors for combined features
-            tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_features=5000, ngram_range=(1, 3), min_df = 2, max_df = 0.8)
+            tfidf_vectorizer = TfidfVectorizer()
             tfidf_matrix = tfidf_vectorizer.fit_transform(movies['combined_features'])
 
             # Compute cosine similarity between selected movie and all other movies
             selected_movie_index = movies[movies['title'] == movie].index[0]
             cosine_similarities = cosine_similarity(tfidf_matrix[selected_movie_index:selected_movie_index+1], tfidf_matrix).flatten()
 
-            
-            similar_movies_indices = cosine_similarities.argsort()[::-1][1:6] 
+            # Sort movies by cosine similarity scores in descending order
+            similar_movies_indices = cosine_similarities.argsort()[::-1][1:]  # Exclude the selected movie
+            similar_movies = movies.iloc[similar_movies_indices]
 
-            recommended_movie_names = []
-            recommended_movie_posters = []
-            for i in similar_movies_indices:
-                title = movies.iloc[i]['title']
-                id_movies = movies.iloc[i]['movie_id']
-                recommended_movie_names.append(title)
-                recommended_movie_posters.append(fetch_poster(id_movies))
+            if len(similar_movies) > 5:
+                # Get top 5 similar movies
+                recommended_movie_names = similar_movies['title'].values[:5]
+                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[:5]]
+            else:
+                recommended_movie_names = similar_movies['title'].values
+                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values]
 
         else:
             # If required columns are missing, recommend random movies
@@ -77,11 +77,7 @@ selected_movie = st.selectbox(
 if st.button('Show Recommendation'):
     recommended_movie_names, recommended_movie_posters = recommend(selected_movie)
     col1, col2, col3, col4, col5 = st.columns(5)
-    columns = [col1, col2, col3, col4, col5]
     for i in range(len(recommended_movie_names)):
-        with columns[i % 5]:
+        with st.container():
             st.text(recommended_movie_names[i])
             st.image(recommended_movie_posters[i])
-
-
-
