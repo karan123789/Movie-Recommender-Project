@@ -23,12 +23,15 @@ def recommend(movie):
         if 'genres' in movies.columns and 'keywords' in movies.columns and 'tags' in movies.columns:
 
 
-            movies['combined_features'] = (movies['genres'].fillna('') + ' ' + 
-                              movies['keywords'].fillna('') + ' ' + 
-                              movies['tags'].fillna(''))
+            movies['combined_features'] = (
+                movies['genres'].fillna('') + ' ' + 
+                movies['genres'].fillna('') + ' ' +  
+                movies['keywords'].fillna('') + ' ' + 
+                movies['tags'].fillna('')
+            )
 
             # Create TF-IDF vectors for combined features
-            tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_features=5000, ngram_range=(1, 2))
+            tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_features=5000, ngram_range=(1, 3), min_df = 2, max_df = 0.8)
             tfidf_matrix = tfidf_vectorizer.fit_transform(movies['combined_features'])
 
             # Compute cosine similarity between selected movie and all other movies
@@ -36,16 +39,15 @@ def recommend(movie):
             cosine_similarities = cosine_similarity(tfidf_matrix[selected_movie_index:selected_movie_index+1], tfidf_matrix).flatten()
 
             
-            similar_movies_indices = cosine_similarities.argsort()[::-1][1:21] 
-            similar_movies = movies.iloc[similar_movies_indices]
+            similar_movies_indices = cosine_similarities.argsort()[::-1][1:6] 
 
-            if len(similar_movies) > 5:
-                # Get top 5 similar movies
-                recommended_movie_names = similar_movies['title'].values[:5]
-                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values[:5]]
-            else:
-                recommended_movie_names = similar_movies['title'].values
-                recommended_movie_posters = [fetch_poster(movie_id) for movie_id in similar_movies['movie_id'].values]
+            recommended_movie_names = []
+            recommended_movie_posters = []
+            for i in similar_movies_indices:
+                title = movies.iloc[i]['title']
+                id_movies = movies.iloc[i]['movie_id']
+                recommended_movie_names.append(title)
+                recommended_movie_posters.append(fetch_poster(id_movies))
 
         else:
             # If required columns are missing, recommend random movies
@@ -80,5 +82,6 @@ if st.button('Show Recommendation'):
         with columns[i % 5]:
             st.text(recommended_movie_names[i])
             st.image(recommended_movie_posters[i])
+
 
 
