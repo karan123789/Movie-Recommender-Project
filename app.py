@@ -3,6 +3,7 @@ import streamlit as st
 import requests
 import random
 import numpy as np
+import gzip
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -32,7 +33,8 @@ st.header('Movie Recommender System')
 
 # Load movie list (assuming this file still exists)
 movies = pickle.load(open('movie_list.pkl', 'rb'))
-similarity = pickle.load(open('similarity.pkl.gz', 'rb'))
+with gzip.open('similarity.pkl.gz', 'rb') as f:
+    similarity = pickle.load(f)
 movie_list = movies['title'].values
 
 selected_movie = st.selectbox(
