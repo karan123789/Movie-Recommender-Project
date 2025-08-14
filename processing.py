@@ -7,6 +7,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 
 
+# Processing the similarity matrix across the movies for various features such as genres etc.
+
 for dirname, _ , filenames in os.walk('/kaggle/input'):
     for filename in filenames:
         print(os.path.join(dirname, filename))

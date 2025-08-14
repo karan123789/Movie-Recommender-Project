@@ -18,6 +18,7 @@ def fetch_poster(movie_id):
         full_path = "https://via.placeholder.com/500x750.png?text=Poster+Not+Available"
     return full_path
 
+# Get recommendations for movies
 def recommend(movie):
     index = movies[movies['title'] == movie].index[0]
     distances = sorted(list(enumerate(similarity[index])), reverse=True, key=lambda x: x[1])
