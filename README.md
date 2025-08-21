@@ -7,3 +7,6 @@ This movie recommender project harnesses the power of machine learning through l
 
 
 Link: https://movie-recommender-project.streamlit.app/
+
+
+Dataset used: https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata
